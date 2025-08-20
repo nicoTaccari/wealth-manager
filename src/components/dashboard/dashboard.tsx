@@ -1,4 +1,3 @@
-// src/components/dashboard/dashboard.tsx
 "use client";
 
 import { UserButton, useUser } from "@clerk/nextjs";
@@ -27,7 +26,6 @@ export function Dashboard() {
               </p>
             </div>
             <UserButton
-              afterSignOutUrl="/sign-in"
               appearance={{
                 elements: {
                   avatarBox: "h-10 w-10",
