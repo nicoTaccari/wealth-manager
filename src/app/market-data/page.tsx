@@ -5,7 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { MarketDataDashboard } from "@/components/debug/market-data-dashbopard";
+import { DiagnosticPanel } from "@/components/debug/diagnostic-panel";
 
 export default function MarketDataPage() {
   return (
@@ -22,10 +22,10 @@ export default function MarketDataPage() {
               </Link>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  Market Data
+                  Market Data & Diagnostics
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Real-time market data and testing tools
+                  System diagnostics and market data testing
                 </p>
               </div>
             </div>
@@ -43,7 +43,7 @@ export default function MarketDataPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <MarketDataDashboard />
+          <DiagnosticPanel />
         </div>
       </main>
     </div>

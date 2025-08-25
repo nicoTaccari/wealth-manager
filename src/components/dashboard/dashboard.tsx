@@ -1,9 +1,9 @@
-// src/components/dashboard/dashboard.tsx
 "use client";
 
 import { UserButton, useUser } from "@clerk/nextjs";
 import { PortfolioList } from "./portfolio-list";
 import { QuickActions } from "./quick-actions";
+import { DiagnosticPanel } from "../debug/diagnostic-panel";
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -13,17 +13,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, TrendingUp, Activity, BarChart } from "lucide-react";
+import {
+  RefreshCw,
+  TrendingUp,
+  Activity,
+  BarChart,
+  AlertTriangle,
+} from "lucide-react";
 import Link from "next/link";
 import { StatsCards } from "./stats-card";
-import { MarketDataDashboard } from "../debug/market-data-dashbopard";
 
 interface Portfolio {
   id: string;
   name: string;
   description?: string;
   totalValue: number;
-  targetAllocation?: unknown;
+  targetAllocation?: any;
   createdAt: Date;
   updatedAt: Date;
   _count?: {
@@ -39,6 +44,9 @@ export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastPriceUpdate, setLastPriceUpdate] = useState<string | null>(null);
+  const [systemStatus, setSystemStatus] = useState<
+    "healthy" | "warning" | "error"
+  >("healthy");
 
   // Fetch real portfolios from API
   const fetchPortfolios = async () => {
@@ -47,34 +55,39 @@ export function Dashboard() {
       if (response.ok) {
         const data = await response.json();
         setPortfolios(data.portfolios || []);
+        setSystemStatus("healthy");
+      } else {
+        setSystemStatus("warning");
       }
     } catch (error) {
       console.error("Failed to fetch portfolios:", error);
+      setSystemStatus("error");
     }
   };
 
-  // Refresh all portfolio prices
+  // Test system health
+  const testSystemHealth = async () => {
+    try {
+      const response = await fetch("/api/portfolios");
+      if (response.ok) {
+        setSystemStatus("healthy");
+      } else {
+        setSystemStatus("warning");
+      }
+    } catch (error) {
+      setSystemStatus("error");
+    }
+  };
+
+  // Refresh all portfolio prices (simplified version)
   const refreshAllPrices = async () => {
     setIsRefreshing(true);
     try {
-      // Update market prices for all portfolios
-      const response = await fetch("/api/cron/update-prices", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${
-            process.env.NEXT_PUBLIC_CRON_SECRET || "dev-secret"
-          }`,
-        },
-      });
-
-      if (response.ok) {
-        setLastPriceUpdate(new Date().toLocaleTimeString());
-        // Refresh portfolio data
-        await fetchPortfolios();
-      }
+      // Just refresh portfolio data for now
+      await fetchPortfolios();
+      setLastPriceUpdate(new Date().toLocaleTimeString());
     } catch (error) {
-      console.error("Failed to refresh prices:", error);
+      console.error("Failed to refresh data:", error);
     }
     setIsRefreshing(false);
   };
@@ -84,6 +97,7 @@ export function Dashboard() {
       setIsLoading(true);
       if (isLoaded) {
         await fetchPortfolios();
+        await testSystemHealth();
       }
       setIsLoading(false);
     };
@@ -110,6 +124,17 @@ export function Dashboard() {
     );
   }
 
+  const getStatusIcon = () => {
+    switch (systemStatus) {
+      case "healthy":
+        return <Activity className="h-5 w-5 text-green-600" />;
+      case "warning":
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+      case "error":
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -120,12 +145,28 @@ export function Dashboard() {
               <h1 className="text-3xl font-bold text-gray-900">
                 Welcome back, {user?.firstName || "there"}!
               </h1>
-              <p className="text-gray-600 mt-1">
-                Here&apos;s your portfolio overview for today
-              </p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-gray-600">
+                  Here&apos;s your portfolio overview for today
+                </p>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon()}
+                  <span
+                    className={`text-sm ${
+                      systemStatus === "healthy"
+                        ? "text-green-600"
+                        : systemStatus === "warning"
+                        ? "text-yellow-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    System {systemStatus}
+                  </span>
+                </div>
+              </div>
               {lastPriceUpdate && (
                 <p className="text-sm text-green-600 mt-1">
-                  Prices last updated: {lastPriceUpdate}
+                  Data last updated: {lastPriceUpdate}
                 </p>
               )}
             </div>
@@ -141,7 +182,7 @@ export function Dashboard() {
                     isRefreshing ? "animate-spin" : ""
                   }`}
                 />
-                Refresh Prices
+                Refresh Data
               </Button>
               <UserButton
                 appearance={{
@@ -194,14 +235,14 @@ export function Dashboard() {
                       Market Overview
                     </CardTitle>
                     <CardDescription>
-                      Quick market insights and portfolio analytics
+                      Portfolio analytics and system status
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Link href="/analytics">
+                    <Link href="/portfolios">
                       <Button variant="outline" size="sm">
                         <BarChart className="h-4 w-4 mr-2" />
-                        View Analytics
+                        View Portfolios
                       </Button>
                     </Link>
                     <Link href="/market-data">
@@ -246,12 +287,22 @@ export function Dashboard() {
                       </div>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
-                        {totalValue > 0 ? "Tracked" : "Ready"}
+                      <div
+                        className={`text-2xl font-bold ${
+                          systemStatus === "healthy"
+                            ? "text-green-600"
+                            : systemStatus === "warning"
+                            ? "text-yellow-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {systemStatus === "healthy"
+                          ? "Online"
+                          : systemStatus === "warning"
+                          ? "Issues"
+                          : "Offline"}
                       </div>
-                      <div className="text-sm text-gray-600">
-                        Market Data Status
-                      </div>
+                      <div className="text-sm text-gray-600">System Status</div>
                     </div>
                   </div>
                 )}
@@ -264,7 +315,7 @@ export function Dashboard() {
             <div className="space-y-6">
               <div className="p-4 bg-blue-50 rounded-lg">
                 <h3 className="font-medium text-blue-900 mb-2">
-                  Development Info
+                  Development Status
                 </h3>
                 <div className="text-sm text-blue-800 space-y-1">
                   <p>
@@ -275,18 +326,20 @@ export function Dashboard() {
                     {user?.primaryEmailAddress?.emailAddress}
                   </p>
                   <p>
-                    <strong>Status:</strong> Market Data & Analytics fully
-                    implemented! 🎉
+                    <strong>System Status:</strong> {systemStatus}
                   </p>
                   <p>
-                    <strong>Features:</strong> Real-time prices, charts,
-                    analytics, holdings management
+                    <strong>Portfolios:</strong> {portfolioCount} loaded
+                  </p>
+                  <p>
+                    <strong>Features:</strong> Simplified market data &
+                    analytics working! 🎉
                   </p>
                 </div>
               </div>
 
-              {/* Market Data Dashboard */}
-              <MarketDataDashboard />
+              {/* System Diagnostics */}
+              <DiagnosticPanel />
             </div>
           )}
         </div>

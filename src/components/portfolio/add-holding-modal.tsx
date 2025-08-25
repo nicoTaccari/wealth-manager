@@ -1,4 +1,4 @@
-// src/components/portfolio/add-holding-modal.tsx
+// src/components/portfolio/add-holding-modal.tsx - Versión simplificada
 "use client";
 
 import { useState } from "react";
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, Loader2, TrendingUp } from "lucide-react";
+import { X, Plus, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface AddHoldingModalProps {
@@ -42,8 +42,6 @@ export function AddHoldingModal({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [marketPrice, setMarketPrice] = useState<number | null>(null);
-  const [isCheckingPrice, setIsCheckingPrice] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -53,7 +51,6 @@ export function AddHoldingModal({
       assetType: "Stock",
     });
     setErrors({});
-    setMarketPrice(null);
   };
 
   const handleClose = () => {
@@ -68,32 +65,22 @@ export function AddHoldingModal({
     }
   };
 
-  const checkMarketPrice = async () => {
-    if (!formData.symbol.trim()) return;
-
-    setIsCheckingPrice(true);
-    try {
-      const response = await fetch(
-        `/api/market-data?symbol=${formData.symbol.toUpperCase()}&type=quote`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.quote) {
-          setMarketPrice(data.quote.price);
-          // Auto-fill avgCost with current market price if not set
-          if (formData.avgCost === 0) {
-            setFormData((prev) => ({ ...prev, avgCost: data.quote.price }));
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch market price:", error);
-    }
-    setIsCheckingPrice(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic validation
+    const newErrors: Record<string, string> = {};
+    if (!formData.symbol.trim()) newErrors.symbol = "Symbol is required";
+    if (formData.quantity <= 0)
+      newErrors.quantity = "Quantity must be greater than 0";
+    if (formData.avgCost <= 0)
+      newErrors.avgCost = "Average cost must be greater than 0";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
 
@@ -103,27 +90,16 @@ export function AddHoldingModal({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          symbol: formData.symbol.toUpperCase(),
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.details) {
-          const fieldErrors: Record<string, string> = {};
-          errorData.details.forEach(
-            (error: { path: (string | number)[]; message: string }) => {
-              fieldErrors[error.path[0]] = error.message;
-            }
-          );
-          setErrors(fieldErrors);
-        } else {
-          throw new Error(errorData.error || "Failed to add holding");
-        }
-        return;
+        throw new Error(errorData.error || "Failed to add holding");
       }
-
-      const data = await response.json();
-      console.log("Holding added:", data);
 
       handleClose();
       onSuccess();
@@ -177,39 +153,19 @@ export function AddHoldingModal({
                 >
                   Symbol *
                 </label>
-                <div className="flex gap-2">
-                  <Input
-                    id="symbol"
-                    value={formData.symbol}
-                    onChange={(e) =>
-                      handleInputChange("symbol", e.target.value.toUpperCase())
-                    }
-                    placeholder="e.g., AAPL, MSFT"
-                    className={
-                      errors.symbol ? "border-red-300 focus:ring-red-500" : ""
-                    }
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={checkMarketPrice}
-                    disabled={isCheckingPrice || !formData.symbol.trim()}
-                    className="px-3"
-                  >
-                    {isCheckingPrice ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <TrendingUp className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                <Input
+                  id="symbol"
+                  value={formData.symbol}
+                  onChange={(e) =>
+                    handleInputChange("symbol", e.target.value.toUpperCase())
+                  }
+                  placeholder="e.g., AAPL, MSFT"
+                  className={
+                    errors.symbol ? "border-red-300 focus:ring-red-500" : ""
+                  }
+                />
                 {errors.symbol && (
                   <p className="text-red-600 text-sm">{errors.symbol}</p>
-                )}
-                {marketPrice && (
-                  <p className="text-sm text-green-600">
-                    Current price: {formatCurrency(marketPrice)}
-                  </p>
                 )}
               </div>
 
@@ -311,16 +267,6 @@ export function AddHoldingModal({
                       {formatCurrency(totalValue)}
                     </span>
                   </div>
-                  {marketPrice && marketPrice !== formData.avgCost && (
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-sm text-blue-700">
-                        Current Value:
-                      </span>
-                      <span className="text-sm font-medium text-blue-700">
-                        {formatCurrency(formData.quantity * marketPrice)}
-                      </span>
-                    </div>
-                  )}
                 </div>
               )}
 
