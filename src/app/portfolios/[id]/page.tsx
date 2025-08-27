@@ -1,4 +1,3 @@
-// src/app/portfolios/[id]/page.tsx - VERSION ACTUALIZADA CON CRUD COMPLETO
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,18 +19,17 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
-  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { Loading } from "@/components/ui/loading";
 import { PortfolioCharts } from "@/components/portfolio/portfolio-charts";
 import { AddHoldingModal } from "@/components/portfolio/add-holding-modal";
-import { EditPortfolioModal } from "@/components/portfolio/edit-portfolio-modal";
-import { DeletePortfolioModal } from "@/components/portfolio/delete-portfolio-modal";
-import { EditHoldingModal } from "@/components/portfolio/edit-holding-modal";
-import { DeleteHoldingModal } from "@/components/portfolio/delete-holding-modal";
 import { PortfolioMetrics } from "@/lib/portfolioAnalytics";
+import { EditPortfolioModal } from "@/components/portfolio/edit-portfolio-modal";
+import { EditHoldingModal } from "@/components/portfolio/edit-holding-modal";
+import { DeletePortfolioModal } from "@/components/portfolio/delete-portfolio-modal";
+import { DeleteHoldingModal } from "@/components/portfolio/delete-holding-modal";
 
 interface Holding {
   id: string;
