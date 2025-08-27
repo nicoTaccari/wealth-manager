@@ -68,6 +68,7 @@ export interface PortfolioStats {
   yearlyReturn?: number;
 }
 
+// Form types for modals
 export interface CreatePortfolioRequest {
   name: string;
   description?: string;
@@ -114,4 +115,92 @@ export interface HoldingsResponse {
 
 export interface HoldingResponse {
   holding: Holding;
+}
+
+// Modal prop types
+export interface PortfolioModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export interface EditPortfolioModalProps extends PortfolioModalProps {
+  portfolio: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+}
+
+export interface DeletePortfolioModalProps {
+  portfolio: {
+    id: string;
+    name: string;
+    _count?: {
+      holdings: number;
+    };
+  };
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export interface AddHoldingModalProps extends PortfolioModalProps {
+  portfolioId: string;
+}
+
+export interface EditHoldingModalProps extends PortfolioModalProps {
+  holding: Holding;
+}
+
+export interface DeleteHoldingModalProps extends PortfolioModalProps {
+  holding: Holding;
+}
+
+// Component prop types
+export interface PortfolioListProps {
+  portfolios: Portfolio[];
+  isLoading?: boolean;
+  onEditPortfolio?: (portfolio: Portfolio) => void;
+  onDeletePortfolio?: (portfolio: Portfolio) => void;
+}
+
+export interface StatsCardsProps {
+  totalValue?: number;
+  totalReturn?: number;
+  totalReturnPercentage?: number;
+  portfolioCount?: number;
+  monthlyReturn?: number;
+  isLoading?: boolean;
+}
+
+// Asset type enum
+export type AssetType = "Stock" | "ETF" | "Bond" | "Crypto" | "Other";
+
+// Form data interfaces
+export interface PortfolioFormData {
+  name: string;
+  description: string;
+}
+
+export interface HoldingFormData {
+  symbol: string;
+  quantity: number;
+  avgCost: number;
+  assetType: AssetType;
+}
+
+export interface EditHoldingFormData {
+  quantity: number;
+  avgCost: number;
+  assetType: AssetType;
+}
+
+// Error types
+export interface FormErrors {
+  [key: string]: string;
+}
+
+export interface ValidationError {
+  path: (string | number)[];
+  message: string;
 }

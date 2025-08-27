@@ -15,8 +15,6 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  FileText,
-  Database,
   Activity,
 } from "lucide-react";
 

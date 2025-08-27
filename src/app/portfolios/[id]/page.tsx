@@ -1,3 +1,4 @@
+// src/app/portfolios/[id]/page.tsx - VERSION ACTUALIZADA CON CRUD COMPLETO
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,12 +20,17 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import { Loading } from "@/components/ui/loading";
 import { PortfolioCharts } from "@/components/portfolio/portfolio-charts";
 import { AddHoldingModal } from "@/components/portfolio/add-holding-modal";
+import { EditPortfolioModal } from "@/components/portfolio/edit-portfolio-modal";
+import { DeletePortfolioModal } from "@/components/portfolio/delete-portfolio-modal";
+import { EditHoldingModal } from "@/components/portfolio/edit-holding-modal";
+import { DeleteHoldingModal } from "@/components/portfolio/delete-holding-modal";
 import { PortfolioMetrics } from "@/lib/portfolioAnalytics";
 
 interface Holding {
@@ -62,7 +68,14 @@ export default function PortfolioDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Modal states
   const [showAddHolding, setShowAddHolding] = useState(false);
+  const [showEditPortfolio, setShowEditPortfolio] = useState(false);
+  const [showDeletePortfolio, setShowDeletePortfolio] = useState(false);
+  const [showEditHolding, setShowEditHolding] = useState(false);
+  const [showDeleteHolding, setShowDeleteHolding] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
 
   const portfolioId = params.id as string;
 
@@ -124,12 +137,23 @@ export default function PortfolioDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [portfolioId]);
 
-  const handleHoldingAdded = () => {
+  const handleDataUpdated = () => {
     // Refresh both portfolio and analytics data
     fetchPortfolio();
     fetchAnalytics();
   };
 
+  const handleEditHolding = (holding: Holding) => {
+    setSelectedHolding(holding);
+    setShowEditHolding(true);
+  };
+
+  const handleDeleteHolding = (holding: Holding) => {
+    setSelectedHolding(holding);
+    setShowDeleteHolding(true);
+  };
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -160,6 +184,7 @@ export default function PortfolioDetailPage() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -204,6 +229,7 @@ export default function PortfolioDetailPage() {
     );
   }
 
+  // Portfolio not found state
   if (!portfolio) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -271,11 +297,19 @@ export default function PortfolioDetailPage() {
                 />
                 Refresh
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditPortfolio(true)}
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeletePortfolio(true)}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>
@@ -440,7 +474,7 @@ export default function PortfolioDetailPage() {
                     return (
                       <div
                         key={holding.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 group"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
@@ -461,7 +495,7 @@ export default function PortfolioDetailPage() {
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="text-right mr-4">
                           <div className="font-semibold text-gray-900">
                             {formatCurrency(holding.marketValue)}
                           </div>
@@ -484,6 +518,26 @@ export default function PortfolioDetailPage() {
                             </span>
                           </div>
                         </div>
+
+                        {/* Actions Menu */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditHolding(holding)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteHolding(holding)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -494,13 +548,58 @@ export default function PortfolioDetailPage() {
         </div>
       </main>
 
-      {/* Add Holding Modal */}
+      {/* Modals */}
       <AddHoldingModal
         portfolioId={portfolioId}
         isOpen={showAddHolding}
         onClose={() => setShowAddHolding(false)}
-        onSuccess={handleHoldingAdded}
+        onSuccess={handleDataUpdated}
       />
+
+      <EditPortfolioModal
+        portfolio={{
+          id: portfolio.id,
+          name: portfolio.name,
+          description: portfolio.description,
+        }}
+        isOpen={showEditPortfolio}
+        onClose={() => setShowEditPortfolio(false)}
+        onSuccess={handleDataUpdated}
+      />
+
+      <DeletePortfolioModal
+        portfolio={{
+          id: portfolio.id,
+          name: portfolio.name,
+          _count: portfolio._count,
+        }}
+        isOpen={showDeletePortfolio}
+        onClose={() => setShowDeletePortfolio(false)}
+      />
+
+      {selectedHolding && (
+        <>
+          <EditHoldingModal
+            holding={selectedHolding}
+            isOpen={showEditHolding}
+            onClose={() => {
+              setShowEditHolding(false);
+              setSelectedHolding(null);
+            }}
+            onSuccess={handleDataUpdated}
+          />
+
+          <DeleteHoldingModal
+            holding={selectedHolding}
+            isOpen={showDeleteHolding}
+            onClose={() => {
+              setShowDeleteHolding(false);
+              setSelectedHolding(null);
+            }}
+            onSuccess={handleDataUpdated}
+          />
+        </>
+      )}
     </div>
   );
 }
