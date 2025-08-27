@@ -61,10 +61,7 @@ export class YahooFinanceProvider implements MarketDataProvider {
         isRealData: true,
       };
     } catch (error) {
-      console.warn(
-        `Yahoo Finance request failed for ${symbol}:`,
-        error.message
-      );
+      console.warn(`Yahoo Finance request failed for ${symbol}:`, error);
       return null;
     }
   }

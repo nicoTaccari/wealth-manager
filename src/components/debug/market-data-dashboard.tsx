@@ -1,4 +1,3 @@
-// src/components/debug/market-data-dashboard.tsx - VERSIÓN MEJORADA
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,6 +28,12 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 
+interface Quote {
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
 interface QuoteResult {
   symbol: string;
   price: number;
@@ -52,13 +57,58 @@ interface TestResults {
   results: QuoteResult[];
 }
 
+interface SingleQuoteResponse {
+  symbol: string;
+  quote?: Quote;
+  source: string;
+  isRealData: boolean;
+  duration: string;
+}
+
+interface HealthDetails {
+  isRealData: boolean;
+  responseTime: number;
+  dataSource: string;
+}
+
+interface HealthStatus {
+  health: {
+    status: "healthy" | "degraded" | "unhealthy";
+    details: HealthDetails;
+  };
+  environment: {
+    hasAlphaVantageKey: boolean;
+    useYahooPrimary: boolean;
+  };
+  recommendations?: string[];
+}
+
+interface DataSource {
+  name: string;
+  status: "available" | "limited" | "unavailable";
+  message?: string;
+}
+
+interface SourcesStatus {
+  sources: DataSource[];
+  summary: {
+    totalSources: number;
+    availableSources: number;
+    recommendation: string;
+  };
+}
+
 export function MarketDataDashboard() {
-  const [testSymbol, setTestSymbol] = useState("AAPL");
+  const [testSymbol, setTestSymbol] = useState<string>("AAPL");
   const [testResults, setTestResults] = useState<TestResults | null>(null);
-  const [singleQuote, setSingleQuote] = useState<any>(null);
-  const [healthStatus, setHealthStatus] = useState<any>(null);
-  const [sourcesStatus, setSourcesStatus] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [singleQuote, setSingleQuote] = useState<SingleQuoteResponse | null>(
+    null
+  );
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [sourcesStatus, setSourcesStatus] = useState<SourcesStatus | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastUpdate, setLastUpdate] = useState<string | null>(null);
 
   // Auto-load health on component mount
@@ -67,27 +117,27 @@ export function MarketDataDashboard() {
     loadSourcesStatus();
   }, []);
 
-  const loadHealthStatus = async () => {
+  const loadHealthStatus = async (): Promise<void> => {
     try {
       const response = await fetch("/api/market-data/test?action=health");
-      const data = await response.json();
+      const data: HealthStatus = await response.json();
       setHealthStatus(data);
     } catch (error) {
       console.error("Health check failed:", error);
     }
   };
 
-  const loadSourcesStatus = async () => {
+  const loadSourcesStatus = async (): Promise<void> => {
     try {
       const response = await fetch("/api/market-data/test?action=sources");
-      const data = await response.json();
+      const data: SourcesStatus = await response.json();
       setSourcesStatus(data);
     } catch (error) {
       console.error("Sources check failed:", error);
     }
   };
 
-  const testSingleSymbol = async () => {
+  const testSingleSymbol = async (): Promise<void> => {
     if (!testSymbol.trim()) return;
 
     setIsLoading(true);
@@ -95,7 +145,7 @@ export function MarketDataDashboard() {
       const response = await fetch(
         `/api/market-data/test?action=single&symbols=${testSymbol.toUpperCase()}`
       );
-      const data = await response.json();
+      const data: SingleQuoteResponse = await response.json();
       setSingleQuote(data);
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (error) {
@@ -104,12 +154,12 @@ export function MarketDataDashboard() {
     setIsLoading(false);
   };
 
-  const testMultipleSymbols = async (preset?: string) => {
+  const testMultipleSymbols = async (preset?: string): Promise<void> => {
     setIsLoading(true);
     try {
       const action = preset || "test";
       const response = await fetch(`/api/market-data/test?action=${action}`);
-      const data = await response.json();
+      const data: TestResults = await response.json();
       setTestResults(data);
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (error) {
@@ -118,7 +168,7 @@ export function MarketDataDashboard() {
     setIsLoading(false);
   };
 
-  const refreshAll = async () => {
+  const refreshAll = async (): Promise<void> => {
     setIsLoading(true);
     await Promise.all([
       loadHealthStatus(),
@@ -126,6 +176,12 @@ export function MarketDataDashboard() {
       testMultipleSymbols(),
     ]);
     setIsLoading(false);
+  };
+
+  const handleSymbolInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    setTestSymbol(e.target.value.toUpperCase());
   };
 
   return (
@@ -290,36 +346,38 @@ export function MarketDataDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {sourcesStatus.sources.map((source: any, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    {source.status === "available" ? (
-                      <Wifi className="h-4 w-4 text-green-600" />
-                    ) : source.status === "limited" ? (
-                      <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    ) : (
-                      <WifiOff className="h-4 w-4 text-red-600" />
-                    )}
-                    <span className="font-medium">{source.name}</span>
-                  </div>
-                  <div
-                    className={`text-sm capitalize ${
-                      source.status === "available"
-                        ? "text-green-600"
-                        : source.status === "limited"
-                        ? "text-yellow-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {source.status}
-                  </div>
-                  {source.message && (
-                    <div className="text-xs text-gray-600 mt-1">
-                      {source.message}
+              {sourcesStatus.sources.map(
+                (source: DataSource, index: number) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      {source.status === "available" ? (
+                        <Wifi className="h-4 w-4 text-green-600" />
+                      ) : source.status === "limited" ? (
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      ) : (
+                        <WifiOff className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="font-medium">{source.name}</span>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div
+                      className={`text-sm capitalize ${
+                        source.status === "available"
+                          ? "text-green-600"
+                          : source.status === "limited"
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {source.status}
+                    </div>
+                    {source.message && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        {source.message}
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
             </div>
 
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
@@ -348,7 +406,7 @@ export function MarketDataDashboard() {
             <div className="flex gap-2">
               <Input
                 value={testSymbol}
-                onChange={(e) => setTestSymbol(e.target.value.toUpperCase())}
+                onChange={handleSymbolInputChange}
                 placeholder="Enter symbol (e.g., AAPL)"
                 className="flex-1"
               />
@@ -496,7 +554,7 @@ export function MarketDataDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {testResults.results.map((result) => (
+              {testResults.results.map((result: QuoteResult) => (
                 <div
                   key={result.symbol}
                   className="flex items-center justify-between p-3 border rounded-lg"

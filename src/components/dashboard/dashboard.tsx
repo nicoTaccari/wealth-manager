@@ -30,7 +30,7 @@ interface Portfolio {
   name: string;
   description?: string;
   totalValue: number;
-  targetAllocation?: any;
+  targetAllocation?: number;
   createdAt: Date;
   updatedAt: Date;
   _count?: {

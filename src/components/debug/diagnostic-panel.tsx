@@ -1,4 +1,4 @@
-// src/components/debug/diagnostic-panel.tsx
+// src/components/debug/diagnostic-panel.tsx - FIXED VERSION
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,18 +18,57 @@ import {
   Activity,
 } from "lucide-react";
 
+// Define specific types for different kinds of details
+interface EnvironmentDetails {
+  clerk: string;
+  alphaVantage: string;
+  database: string;
+}
+
+interface ApiTestResult {
+  endpoint: string;
+  status: number;
+  ok: boolean;
+  statusText?: string;
+  error?: unknown;
+}
+
+interface DatabaseDetails {
+  statusCode: number;
+}
+
+interface MarketDataDetails {
+  response: unknown;
+  isMockData: boolean;
+}
+
+interface FileStructureDetails {
+  components: string[];
+  apis: string[];
+  services: string[];
+}
+
+// Union type for all possible detail types
+type DiagnosticDetails =
+  | EnvironmentDetails
+  | ApiTestResult[]
+  | DatabaseDetails
+  | MarketDataDetails
+  | FileStructureDetails
+  | Record<string, unknown>;
+
 interface DiagnosticResult {
   name: string;
   status: "success" | "error" | "warning" | "loading";
   message: string;
-  details?: any;
+  details?: DiagnosticDetails;
 }
 
 export function DiagnosticPanel() {
   const [results, setResults] = useState<DiagnosticResult[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState<boolean>(false);
 
-  const runDiagnostics = async () => {
+  const runDiagnostics = async (): Promise<void> => {
     setIsRunning(true);
     const diagnostics: DiagnosticResult[] = [];
 
@@ -41,30 +80,61 @@ export function DiagnosticPanel() {
     });
 
     try {
+      // Check for environment variables on the client side safely
       const hasAlphaVantage =
-        !!process.env.NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY ||
-        !!process.env.ALPHA_VANTAGE_API_KEY;
-      const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+        typeof window !== "undefined"
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            !!(window as any).__NEXT_DATA__?.env?.ALPHA_VANTAGE_API_KEY
+          : false;
 
-      diagnostics[diagnostics.length - 1] = {
-        name: "Environment Variables",
-        status: hasClerk ? "success" : "error",
-        message: hasClerk
-          ? "Environment configured"
-          : "Missing environment variables",
-        details: {
-          clerk: hasClerk
-            ? "✅ Configured"
-            : "❌ Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      // For client-side, we'll check via an API call instead
+      let envCheckResult: EnvironmentDetails;
+      try {
+        const envResponse = await fetch("/api/health/env");
+        if (envResponse.ok) {
+          const envData = await envResponse.json();
+          envCheckResult = {
+            clerk: envData.hasClerk
+              ? "✅ Configured"
+              : "❌ Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+            alphaVantage: envData.hasAlphaVantage
+              ? "✅ Configured"
+              : "⚠️ Missing ALPHA_VANTAGE_API_KEY (will use mock data)",
+            database: "Checking...",
+          };
+        } else {
+          throw new Error("Environment check API failed");
+        }
+      } catch {
+        // Fallback to basic check
+        envCheckResult = {
+          clerk: "❓ Unable to verify",
           alphaVantage: hasAlphaVantage
             ? "✅ Configured"
             : "⚠️ Missing ALPHA_VANTAGE_API_KEY (will use mock data)",
           database: "Checking...",
-        },
+        };
+      }
+
+      const hasBasicConfig = envCheckResult.clerk.includes("✅");
+
+      diagnostics[diagnostics.length - 1] = {
+        name: "Environment Variables",
+        status: hasBasicConfig ? "success" : "error",
+        message: hasBasicConfig
+          ? "Environment configured"
+          : "Missing environment variables",
+        details: envCheckResult,
       };
     } catch (error) {
-      diagnostics[diagnostics.length - 1].status = "error";
-      diagnostics[diagnostics.length - 1].message = "Environment check failed";
+      diagnostics[diagnostics.length - 1] = {
+        ...diagnostics[diagnostics.length - 1],
+        status: "error",
+        message: "Environment check failed",
+        details: {
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      };
     }
 
     setResults([...diagnostics]);
@@ -83,7 +153,7 @@ export function DiagnosticPanel() {
         { endpoint: "/api/market-data?symbol=AAPL", method: "GET" },
       ];
 
-      const apiResults = [];
+      const apiResults: ApiTestResult[] = [];
       for (const test of apiTests) {
         try {
           const response = await fetch(test.endpoint, { method: test.method });
@@ -98,7 +168,7 @@ export function DiagnosticPanel() {
             endpoint: test.endpoint,
             status: 0,
             ok: false,
-            error: error.message,
+            error: error instanceof Error ? error.message : "Unknown error",
           });
         }
       }
@@ -113,10 +183,13 @@ export function DiagnosticPanel() {
         details: apiResults,
       };
     } catch (error) {
-      diagnostics[diagnostics.length - 1].status = "error";
-      diagnostics[
-        diagnostics.length - 1
-      ].message = `API test failed: ${error.message}`;
+      diagnostics[diagnostics.length - 1] = {
+        ...diagnostics[diagnostics.length - 1],
+        status: "error",
+        message: `API test failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      };
     }
 
     setResults([...diagnostics]);
@@ -139,13 +212,16 @@ export function DiagnosticPanel() {
         message: dbWorking
           ? "Database connected"
           : "Database connection failed",
-        details: { statusCode: response.status },
+        details: { statusCode: response.status } as DatabaseDetails,
       };
     } catch (error) {
-      diagnostics[diagnostics.length - 1].status = "error";
-      diagnostics[
-        diagnostics.length - 1
-      ].message = `Database test failed: ${error.message}`;
+      diagnostics[diagnostics.length - 1] = {
+        ...diagnostics[diagnostics.length - 1],
+        status: "error",
+        message: `Database test failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      };
     }
 
     setResults([...diagnostics]);
@@ -160,11 +236,21 @@ export function DiagnosticPanel() {
 
     try {
       const response = await fetch("/api/market-data?symbol=AAPL&type=quote");
-      const data = await response.json();
+      const data: unknown = await response.json();
 
-      const isWorking = response.ok && data.quote;
-      const isMockData =
-        data.quote && data.quote.symbol === "AAPL" && data.quote.price > 0;
+      const isWorking =
+        response.ok &&
+        data &&
+        typeof data === "object" &&
+        data !== null &&
+        "quote" in data;
+
+      let isMockData = false;
+      if (isWorking && data && typeof data === "object" && "quote" in data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const quote = (data as any).quote;
+        isMockData = quote && quote.symbol === "AAPL" && quote.price > 0;
+      }
 
       diagnostics[diagnostics.length - 1] = {
         name: "Market Data Service",
@@ -174,13 +260,16 @@ export function DiagnosticPanel() {
             ? "Market data working (using mock data)"
             : "Market data working (real API)"
           : "Market data service failed",
-        details: { response: data, isMockData },
+        details: { response: data, isMockData } as MarketDataDetails,
       };
     } catch (error) {
-      diagnostics[diagnostics.length - 1].status = "error";
-      diagnostics[
-        diagnostics.length - 1
-      ].message = `Market data test failed: ${error.message}`;
+      diagnostics[diagnostics.length - 1] = {
+        ...diagnostics[diagnostics.length - 1],
+        status: "error",
+        message: `Market data test failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      };
     }
 
     setResults([...diagnostics]);
@@ -204,7 +293,7 @@ export function DiagnosticPanel() {
           "? /api/holdings/[id]/route.ts",
         ],
         services: ["? MarketDataService", "? PortfolioAnalytics"],
-      },
+      } as FileStructureDetails,
     });
 
     setResults([...diagnostics]);
@@ -215,7 +304,7 @@ export function DiagnosticPanel() {
     runDiagnostics();
   }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: DiagnosticResult["status"]) => {
     switch (status) {
       case "success":
         return <CheckCircle className="h-5 w-5 text-green-600" />;
@@ -227,6 +316,14 @@ export function DiagnosticPanel() {
         return <RefreshCw className="h-5 w-5 text-blue-600 animate-spin" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const formatDetailsForDisplay = (details: DiagnosticDetails): string => {
+    try {
+      return JSON.stringify(details, null, 2);
+    } catch {
+      return "Unable to display details";
     }
   };
 
@@ -272,35 +369,12 @@ export function DiagnosticPanel() {
                     View Details
                   </summary>
                   <pre className="mt-2 text-xs bg-gray-100 p-3 rounded overflow-auto max-h-40">
-                    {JSON.stringify(result.details, null, 2)}
+                    {formatDetailsForDisplay(result.details)}
                   </pre>
                 </details>
               )}
             </div>
           ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Quick Actions</h4>
-          <div className="space-y-2 text-sm">
-            <div>
-              <strong>If APIs are failing:</strong> Check file locations in
-              src/app/api/
-            </div>
-            <div>
-              <strong>If using mock data:</strong> Add
-              ALPHA_VANTAGE_API_KEY="DEMO" to .env.local
-            </div>
-            <div>
-              <strong>If database errors:</strong> Run: npx prisma db push &&
-              npx prisma generate
-            </div>
-            <div>
-              <strong>If import errors:</strong> Check that all files are
-              created with exact content
-            </div>
-          </div>
         </div>
       </CardContent>
     </Card>

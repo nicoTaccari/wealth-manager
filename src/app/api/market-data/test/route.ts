@@ -157,10 +157,15 @@ async function handleSourcesCheck() {
   });
 }
 
+type RateLimitInfo = {
+  remaining: number | null;
+  [key: string]: unknown;
+};
+
 function getSourceMessage(
   name: string,
   available: boolean,
-  rateLimit: any
+  rateLimit: RateLimitInfo
 ): string {
   if (!available) {
     if (name === "Alpha Vantage") {

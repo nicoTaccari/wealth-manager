@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const symbols = uniqueSymbols.map((h) => h.symbol);
 
     // Fetch current market prices
-    const quotes = await marketDataService.updateMultipleQuotes(symbols);
+    const quotes = await marketDataService.getBatchQuotes(symbols);
 
     let updatedHoldingsCount = 0;
     let updatedPortfoliosCount = 0;

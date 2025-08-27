@@ -1,9 +1,8 @@
-// src/app/api/portfolios/[id]/analytics/route.ts - Versión simplificada
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { Holding } from "@prisma/client";
 
-// Inline simplified analytics
 class SimplePortfolioAnalytics {
   private colors = [
     "#3B82F6",
@@ -18,7 +17,7 @@ class SimplePortfolioAnalytics {
     "#6366F1",
   ];
 
-  calculateMetrics(holdings: any[]) {
+  calculateMetrics(holdings: Holding[]) {
     const totalCost = holdings.reduce(
       (sum, h) => sum + h.quantity * h.avgCost,
       0

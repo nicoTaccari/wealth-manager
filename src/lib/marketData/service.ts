@@ -118,10 +118,7 @@ export class MarketDataService {
           };
         }
       } catch (error) {
-        console.warn(
-          `Provider ${provider.name} failed for ${symbol}:`,
-          error.message
-        );
+        console.warn(`Provider ${provider.name} failed for ${symbol}:`, error);
         continue;
       }
     }
@@ -187,10 +184,7 @@ export class MarketDataService {
             }
           });
         } catch (error) {
-          console.warn(
-            `Batch provider ${provider.name} failed:`,
-            error.message
-          );
+          console.warn(`Batch provider ${provider.name} failed:`, error);
           continue;
         }
 
@@ -223,10 +217,7 @@ export class MarketDataService {
             return data;
           }
         } catch (error) {
-          console.warn(
-            `Historical data failed for ${provider.name}:`,
-            error.message
-          );
+          console.warn(`Historical data failed for ${provider.name}:`, error);
           continue;
         }
       }
@@ -237,7 +228,7 @@ export class MarketDataService {
 
   async checkServiceHealth(): Promise<{
     status: "healthy" | "degraded" | "error";
-    details: Record<string, any>;
+    details: Record<string, unknown>;
     providers: Array<{
       name: string;
       available: boolean;
@@ -288,7 +279,7 @@ export class MarketDataService {
     } catch (error) {
       return {
         status: "error",
-        details: { error: error.message },
+        details: { error },
         providers: [],
       };
     }

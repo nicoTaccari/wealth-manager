@@ -114,10 +114,7 @@ export class AlphaVantageProvider implements MarketDataProvider {
 
       return result;
     } catch (error) {
-      console.warn(
-        `Alpha Vantage request failed for ${symbol}:`,
-        error.message
-      );
+      console.warn(`Alpha Vantage request failed for ${symbol}:`, error);
       return null;
     }
   }
@@ -199,7 +196,7 @@ export class AlphaVantageProvider implements MarketDataProvider {
     } catch (error) {
       console.warn(
         `Alpha Vantage historical data failed for ${symbol}:`,
-        error.message
+        error
       );
       return [];
     }
