@@ -13,8 +13,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log("Starting automatic price update...");
-
     // Get all unique symbols from all holdings
     const uniqueSymbols = await prisma.holding.findMany({
       select: { symbol: true },
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest) {
     }
 
     const symbols = uniqueSymbols.map((h) => h.symbol);
-    console.log(`Updating prices for ${symbols.length} symbols:`, symbols);
 
     // Fetch current market prices
     const quotes = await marketDataService.updateMultipleQuotes(symbols);
@@ -85,10 +82,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(
-      `Price update completed: ${updatedHoldingsCount} holdings, ${updatedPortfoliosCount} portfolios`
-    );
-
     return NextResponse.json({
       message: "Prices updated successfully",
       symbolsProcessed: symbols.length,
@@ -98,7 +91,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Automatic price update error:", error);
     return NextResponse.json(
       {
         error: "Failed to update prices",
@@ -122,7 +114,6 @@ export async function GET(request: NextRequest) {
 
     return POST(request);
   } catch (error) {
-    console.error("Manual price update error:", error);
     return NextResponse.json(
       { error: "Failed to update prices" },
       { status: 500 }

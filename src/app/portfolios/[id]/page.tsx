@@ -68,7 +68,6 @@ export default function PortfolioDetailPage() {
 
   const fetchPortfolio = async () => {
     try {
-      console.log("Fetching portfolio:", portfolioId);
       const response = await fetch(`/api/portfolios/${portfolioId}`);
 
       if (!response.ok) {
@@ -79,7 +78,6 @@ export default function PortfolioDetailPage() {
       const data = await response.json();
       setPortfolio(data.portfolio);
     } catch (err) {
-      console.error("Error fetching portfolio:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
     }
   };

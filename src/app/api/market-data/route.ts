@@ -1,55 +1,7 @@
-// src/app/api/market-data/route.ts - Versión simplificada
+// src/app/api/market-data/route.ts - VERSIÓN CORREGIDA
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-
-// Inline simple market data service for this API
-class SimpleMarketDataService {
-  private generateMockQuote(symbol: string) {
-    const basePrices: Record<string, number> = {
-      AAPL: 175,
-      MSFT: 380,
-      GOOGL: 140,
-      AMZN: 155,
-      TSLA: 250,
-      NVDA: 800,
-      META: 320,
-      NFLX: 450,
-      SPY: 450,
-      QQQ: 380,
-    };
-
-    const basePrice = basePrices[symbol] || 50 + (symbol.charCodeAt(0) % 100);
-    const change = (Math.random() - 0.5) * 10;
-    const price = Math.max(basePrice + change, 1);
-    const changePercent = (change / basePrice) * 100;
-
-    return {
-      symbol,
-      price: Math.round(price * 100) / 100,
-      change: Math.round(change * 100) / 100,
-      changePercent: Math.round(changePercent * 100) / 100,
-      volume: Math.floor(Math.random() * 1000000) + 100000,
-      lastUpdate: new Date().toISOString().split("T")[0],
-    };
-  }
-
-  async getQuote(symbol: string) {
-    // For now, always return mock data to ensure it works
-    return {
-      quote: this.generateMockQuote(symbol),
-    };
-  }
-
-  async updateMultipleQuotes(symbols: string[]) {
-    const results: Record<string, any> = {};
-    for (const symbol of symbols) {
-      results[symbol] = this.generateMockQuote(symbol);
-    }
-    return results;
-  }
-}
-
-const marketService = new SimpleMarketDataService();
+import { marketDataService } from "@/lib/marketData";
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,6 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get("symbol");
+    const type = searchParams.get("type") || "quote";
 
     if (!symbol) {
       return NextResponse.json(
@@ -69,15 +22,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`GET /api/market-data - Symbol: ${symbol}`);
+    // Handle different request types
+    switch (type) {
+      case "quote":
+        const result = await marketDataService.getQuote(symbol.toUpperCase());
 
-    const result = await marketService.getQuote(symbol.toUpperCase());
+        if (result.error) {
+          return NextResponse.json({ error: result.error }, { status: 500 });
+        }
 
-    return NextResponse.json(result);
+        return NextResponse.json({
+          quote: result.quote,
+          source: result.quote?.source || result.source || "unknown",
+          timestamp: new Date().toISOString(),
+        });
+
+      case "health":
+        const health = await marketDataService.checkServiceHealth();
+        return NextResponse.json(health);
+
+      default:
+        return NextResponse.json(
+          { error: `Unknown type: ${type}` },
+          { status: 400 }
+        );
+    }
   } catch (error) {
-    console.error("GET /api/market-data error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
@@ -92,27 +68,64 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { symbols } = body;
+    const { symbols, action } = body;
 
-    if (!symbols || !Array.isArray(symbols)) {
-      return NextResponse.json(
-        { error: "Symbols array is required" },
-        { status: 400 }
-      );
+    switch (action) {
+      case "batch-quotes":
+      default:
+        if (!symbols || !Array.isArray(symbols)) {
+          return NextResponse.json(
+            { error: "Symbols array is required" },
+            { status: 400 }
+          );
+        }
+
+        if (symbols.length > 20) {
+          return NextResponse.json(
+            { error: "Maximum 20 symbols allowed per request" },
+            { status: 400 }
+          );
+        }
+
+        const quotes = await marketDataService.updateMultipleQuotes(
+          symbols.map((s) => s.toUpperCase())
+        );
+
+        const successCount = Object.keys(quotes).length;
+        const failedSymbols = symbols.filter((s) => !quotes[s.toUpperCase()]);
+
+        return NextResponse.json({
+          quotes,
+          summary: {
+            requested: symbols.length,
+            successful: successCount,
+            failed: failedSymbols,
+            timestamp: new Date().toISOString(),
+          },
+        });
     }
-
-    console.log(`POST /api/market-data - Symbols: ${symbols.join(", ")}`);
-
-    const quotes = await marketService.updateMultipleQuotes(
-      symbols.map((s) => s.toUpperCase())
-    );
-
-    return NextResponse.json({ quotes });
   } catch (error) {
-    console.error("POST /api/market-data error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
+}
+
+// OPTIONS method for CORS if needed
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json(
+    {},
+    {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    }
+  );
 }

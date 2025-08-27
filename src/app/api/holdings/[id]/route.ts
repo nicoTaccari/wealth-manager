@@ -59,7 +59,6 @@ export async function GET(request: NextRequest, { params }: HoldingParams) {
 
     return NextResponse.json({ holding: enrichedHolding });
   } catch (error) {
-    console.error("GET /api/holdings/[id] error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -129,8 +128,6 @@ export async function PUT(request: NextRequest, { params }: HoldingParams) {
 
     return NextResponse.json({ holding });
   } catch (error) {
-    console.error("PUT /api/holdings/[id] error:", error);
-
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation error", details: error.message },
@@ -185,7 +182,6 @@ export async function DELETE(request: NextRequest, { params }: HoldingParams) {
 
     return NextResponse.json({ message: "Holding deleted successfully" });
   } catch (error) {
-    console.error("DELETE /api/holdings/[id] error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
