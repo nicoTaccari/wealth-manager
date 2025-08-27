@@ -1,4 +1,3 @@
-// src/lib/portfolioAnalytics.ts - Versión simplificada
 interface Holding {
   id: string;
   symbol: string;

@@ -1,4 +1,3 @@
-// src/app/api/market-data/route.ts - VERSIÓN CORREGIDA
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { marketDataService } from "@/lib/marketData";
@@ -14,6 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get("symbol");
     const type = searchParams.get("type") || "quote";
+    const period = searchParams.get("period") || "1mo";
 
     if (!symbol) {
       return NextResponse.json(
@@ -22,18 +22,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Handle different request types
     switch (type) {
       case "quote":
         const result = await marketDataService.getQuote(symbol.toUpperCase());
 
         if (result.error) {
-          return NextResponse.json({ error: result.error }, { status: 500 });
+          return NextResponse.json(
+            {
+              error: result.error,
+              source: result.source,
+              timestamp: new Date().toISOString(),
+            },
+            { status: 503 }
+          );
         }
 
         return NextResponse.json({
           quote: result.quote,
-          source: result.quote?.source || result.source || "unknown",
+          source: result.source,
+          timestamp: new Date().toISOString(),
+        });
+
+      case "historical":
+        const historicalData = await marketDataService.getHistoricalData(
+          symbol.toUpperCase(),
+          period
+        );
+
+        return NextResponse.json({
+          symbol: symbol.toUpperCase(),
+          period,
+          data: historicalData,
+          count: historicalData.length,
           timestamp: new Date().toISOString(),
         });
 
@@ -48,6 +68,7 @@ export async function GET(request: NextRequest) {
         );
     }
   } catch (error) {
+    console.error("Market data API error:", error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -80,31 +101,35 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        if (symbols.length > 20) {
+        if (symbols.length > 50) {
           return NextResponse.json(
-            { error: "Maximum 20 symbols allowed per request" },
+            { error: "Maximum 50 symbols allowed per request" },
             { status: 400 }
           );
         }
 
-        const quotes = await marketDataService.updateMultipleQuotes(
-          symbols.map((s) => s.toUpperCase())
+        const quotes = await marketDataService.getBatchQuotes(
+          symbols.map((s: string) => s.toUpperCase())
         );
 
         const successCount = Object.keys(quotes).length;
-        const failedSymbols = symbols.filter((s) => !quotes[s.toUpperCase()]);
+        const failedSymbols = symbols.filter(
+          (s: string) => !quotes[s.toUpperCase()]
+        );
 
         return NextResponse.json({
           quotes,
           summary: {
             requested: symbols.length,
             successful: successCount,
-            failed: failedSymbols,
+            failed: failedSymbols.length,
+            failedSymbols,
             timestamp: new Date().toISOString(),
           },
         });
     }
   } catch (error) {
+    console.error("Market data batch API error:", error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -114,18 +139,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// OPTIONS method for CORS if needed
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-    }
-  );
 }
