@@ -19,6 +19,7 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
+  Brain,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
@@ -31,6 +32,7 @@ import { EditHoldingModal } from "@/components/portfolio/edit-holding-modal";
 import { DeletePortfolioModal } from "@/components/portfolio/delete-portfolio-modal";
 import { DeleteHoldingModal } from "@/components/portfolio/delete-holding-modal";
 import { HoldingsTable } from "@/components/portfolio/holdings-table";
+import { AIAnalysisPanel } from "@/components/ai/analysis-panel";
 import { Holding, Portfolio } from "@/types/portfolio";
 
 export default function PortfolioDetailPage() {
@@ -40,6 +42,9 @@ export default function PortfolioDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "ai">(
+    "overview"
+  );
 
   // Modal states
   const [showAddHolding, setShowAddHolding] = useState(false);
@@ -291,10 +296,52 @@ export default function PortfolioDetailPage() {
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "overview"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "analytics"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab("ai")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === "ai"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Brain className="h-4 w-4" />
+              AI Analysis
+              <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                NEW
+              </span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Portfolio Overview */}
+          {/* Portfolio Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="pb-2">
@@ -384,47 +431,59 @@ export default function PortfolioDetailPage() {
             </Card>
           </div>
 
-          {/* Analytics Charts */}
-          {metrics && (
-            <div className="mb-8">
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Holdings</CardTitle>
+                    <CardDescription>
+                      Individual positions in this portfolio
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => setShowAddHolding(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Holding
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <HoldingsTable
+                  holdings={portfolio.holdings ?? []}
+                  isLoading={isLoading}
+                  onEdit={handleEditHolding}
+                  onDelete={handleDeleteHolding}
+                  onAddNew={() => setShowAddHolding(true)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "analytics" && (
+            <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Analytics
+                Portfolio Analytics
               </h2>
-              <PortfolioCharts
-                allocation={metrics.allocation}
-                performance={metrics.performance}
-                riskMetrics={metrics.riskMetrics}
-                isLoading={false}
-              />
+              {metrics && (
+                <PortfolioCharts
+                  allocation={metrics.allocation}
+                  performance={metrics.performance}
+                  riskMetrics={metrics.riskMetrics}
+                  isLoading={false}
+                />
+              )}
             </div>
           )}
 
-          {/* Holdings List */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Holdings</CardTitle>
-                  <CardDescription>
-                    Individual positions in this portfolio
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setShowAddHolding(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Holding
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <HoldingsTable
-                holdings={portfolio.holdings ?? []}
-                isLoading={isLoading}
-                onEdit={handleEditHolding}
-                onDelete={handleDeleteHolding}
-                onAddNew={() => setShowAddHolding(true)}
-              />
-            </CardContent>
-          </Card>
+          {activeTab === "ai" && (
+            <AIAnalysisPanel
+              portfolioId={portfolioId}
+              portfolioName={portfolio.name}
+              totalValue={metrics?.totalValue || portfolio.totalValue}
+              isLoading={isLoading}
+            />
+          )}
         </div>
       </main>
 
