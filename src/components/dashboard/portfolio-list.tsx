@@ -16,22 +16,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatPercentage } from "@/lib/utils";
 import Link from "next/link";
-
-interface Portfolio {
-  id: string;
-  name: string;
-  description?: string;
-  totalValue: number;
-  targetAllocation?: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-  _count?: {
-    holdings: number;
-  };
-  // Calculated fields
-  totalReturn?: number;
-  totalReturnPercentage?: number;
-}
+import { Portfolio } from "@/types/portfolio";
 
 interface PortfolioListProps {
   portfolios: Portfolio[];

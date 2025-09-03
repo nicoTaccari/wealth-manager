@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Edit, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { Edit, Loader2, TrendingUp, TrendingDown } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 
 interface EditHoldingModalProps {
   holding: {
@@ -139,215 +142,196 @@ export function EditHoldingModal({
     newTotalCost > 0 ? (newReturn / newTotalCost) * 100 : 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <Card className="border-0">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Edit className="h-5 w-5 text-blue-600" />
-                  Edit {holding.symbol} Position
-                </CardTitle>
-                <CardDescription>Update your holding details</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleClose}>
-                <X className="h-4 w-4" />
-              </Button>
+    <Dialog isOpen={isOpen} onClose={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              Edit {holding.symbol} Position
+            </DialogTitle>
+            <DialogDescription>Update your holding details</DialogDescription>
+          </div>
+          <DialogClose onClose={onClose} />
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* General Error */}
+          {errors.general && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{errors.general}</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* General Error */}
-              {errors.general && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800 text-sm">{errors.general}</p>
-                </div>
-              )}
+          )}
 
-              {/* Current Position Summary */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  Current Position
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Market Value:</span>
-                    <p className="font-medium">
-                      {formatCurrency(holding.marketValue)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Current Price:</span>
-                    <p className="font-medium">
-                      {formatCurrency(currentPrice)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Total Return:</span>
-                    <div
-                      className={`flex items-center gap-1 ${
-                        originalReturn >= 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {originalReturn >= 0 ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      <span className="font-medium">
-                        {formatCurrency(originalReturn)} (
-                        {originalReturnPercentage.toFixed(2)}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
+          {/* Current Position Summary */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-2">Current Position</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Market Value:</span>
+                <p className="font-medium">
+                  {formatCurrency(holding.marketValue)}
+                </p>
               </div>
-
-              {/* Asset Type */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="assetType"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Asset Type
-                </label>
-                <select
-                  id="assetType"
-                  value={formData.assetType}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "assetType",
-                      e.target.value as FormData["assetType"]
-                    )
-                  }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
-                >
-                  <option value="Stock">Stock</option>
-                  <option value="ETF">ETF</option>
-                  <option value="Bond">Bond</option>
-                  <option value="Crypto">Crypto</option>
-                  <option value="Other">Other</option>
-                </select>
+              <div>
+                <span className="text-gray-600">Current Price:</span>
+                <p className="font-medium">{formatCurrency(currentPrice)}</p>
               </div>
-
-              {/* Quantity */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="quantity"
-                  className="text-sm font-medium text-gray-700"
+              <div>
+                <span className="text-gray-600">Total Return:</span>
+                <div
+                  className={`flex items-center gap-1 ${
+                    originalReturn >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
                 >
-                  Quantity *
-                </label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  step="0.000001"
-                  min="0"
-                  value={formData.quantity || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "quantity",
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                  placeholder="Number of shares"
-                  className={
-                    errors.quantity ? "border-red-300 focus:ring-red-500" : ""
-                  }
-                />
-                {errors.quantity && (
-                  <p className="text-red-600 text-sm">{errors.quantity}</p>
-                )}
-              </div>
-
-              {/* Average Cost */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="avgCost"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Average Cost per Share *
-                </label>
-                <Input
-                  id="avgCost"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.avgCost || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "avgCost",
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                  placeholder="Average price paid per share"
-                  className={
-                    errors.avgCost ? "border-red-300 focus:ring-red-500" : ""
-                  }
-                />
-                {errors.avgCost && (
-                  <p className="text-red-600 text-sm">{errors.avgCost}</p>
-                )}
-              </div>
-
-              {/* Preview of Changes */}
-              {formData.quantity > 0 && formData.avgCost > 0 && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">
-                    Preview Changes
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-blue-800">New Investment:</span>
-                      <p className="font-medium text-blue-900">
-                        {formatCurrency(newTotalCost)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-blue-800">Current Value:</span>
-                      <p className="font-medium text-blue-900">
-                        {formatCurrency(newCurrentValue)}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-blue-800">New Return:</span>
-                      <div
-                        className={`flex items-center gap-1 ${
-                          newReturn >= 0 ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {newReturn >= 0 ? (
-                          <TrendingUp className="h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3" />
-                        )}
-                        <span className="font-medium">
-                          {formatCurrency(newReturn)} (
-                          {newReturnPercentage.toFixed(2)}%)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-4">
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {originalReturn >= 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
                   )}
-                  Update Holding
-                </Button>
-                <Button type="button" variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
+                  <span className="font-medium">
+                    {formatCurrency(originalReturn)} (
+                    {originalReturnPercentage.toFixed(2)}%)
+                  </span>
+                </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+            </div>
+          </div>
+
+          {/* Asset Type */}
+          <div className="space-y-2">
+            <label
+              htmlFor="assetType"
+              className="text-sm font-medium text-gray-700"
+            >
+              Asset Type
+            </label>
+            <select
+              id="assetType"
+              value={formData.assetType}
+              onChange={(e) =>
+                handleInputChange(
+                  "assetType",
+                  e.target.value as FormData["assetType"]
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-600 focus:border-blue-600"
+            >
+              <option value="Stock">Stock</option>
+              <option value="ETF">ETF</option>
+              <option value="Bond">Bond</option>
+              <option value="Crypto">Crypto</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* Quantity */}
+          <div className="space-y-2">
+            <label
+              htmlFor="quantity"
+              className="text-sm font-medium text-gray-700"
+            >
+              Quantity *
+            </label>
+            <Input
+              id="quantity"
+              type="number"
+              step="0.000001"
+              min="0"
+              value={formData.quantity || ""}
+              onChange={(e) =>
+                handleInputChange("quantity", parseFloat(e.target.value) || 0)
+              }
+              placeholder="Number of shares"
+              className={
+                errors.quantity ? "border-red-300 focus:ring-red-500" : ""
+              }
+            />
+            {errors.quantity && (
+              <p className="text-red-600 text-sm">{errors.quantity}</p>
+            )}
+          </div>
+
+          {/* Average Cost */}
+          <div className="space-y-2">
+            <label
+              htmlFor="avgCost"
+              className="text-sm font-medium text-gray-700"
+            >
+              Average Cost per Share *
+            </label>
+            <Input
+              id="avgCost"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.avgCost || ""}
+              onChange={(e) =>
+                handleInputChange("avgCost", parseFloat(e.target.value) || 0)
+              }
+              placeholder="Average price paid per share"
+              className={
+                errors.avgCost ? "border-red-300 focus:ring-red-500" : ""
+              }
+            />
+            {errors.avgCost && (
+              <p className="text-red-600 text-sm">{errors.avgCost}</p>
+            )}
+          </div>
+
+          {/* Preview of Changes */}
+          {formData.quantity > 0 && formData.avgCost > 0 && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">
+                Preview Changes
+              </h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-800">New Investment:</span>
+                  <p className="font-medium text-blue-900">
+                    {formatCurrency(newTotalCost)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-blue-800">Current Value:</span>
+                  <p className="font-medium text-blue-900">
+                    {formatCurrency(newCurrentValue)}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-blue-800">New Return:</span>
+                  <div
+                    className={`flex items-center gap-1 ${
+                      newReturn >= 0 ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {newReturn >= 0 ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    <span className="font-medium">
+                      {formatCurrency(newReturn)} (
+                      {newReturnPercentage.toFixed(2)}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <DialogFooter>
+            <Button type="submit" disabled={isLoading} className="flex-1">
+              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Update Holding
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -24,21 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { StatsCards } from "./stats-card";
-
-interface Portfolio {
-  id: string;
-  name: string;
-  description?: string;
-  totalValue: number;
-  targetAllocation?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  _count?: {
-    holdings: number;
-  };
-  totalReturn?: number;
-  totalReturnPercentage?: number;
-}
+import { usePortfolioData } from "@/hooks/usePortfolioData";
 
 interface SystemHealth {
   portfolio: "healthy" | "warning" | "error";
@@ -48,10 +34,9 @@ interface SystemHealth {
 
 export function Dashboard() {
   const { user, isLoaded } = useUser();
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<string | null>(null);
+
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     portfolio: "healthy",
     marketData: "healthy",
@@ -59,34 +44,14 @@ export function Dashboard() {
   });
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPortfolios = useCallback(async () => {
-    try {
-      const response = await fetch("/api/portfolios", {
-        headers: {
-          "Cache-Control": "no-cache",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      setPortfolios(data.portfolios || []);
-      setSystemHealth((prev) => ({
-        ...prev,
-        portfolio: "healthy",
-        database: "healthy",
-      }));
-      setError(null);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to fetch portfolios"
-      );
-      setSystemHealth((prev) => ({ ...prev, portfolio: "error" }));
-    }
-  }, []);
+  const {
+    portfolios,
+    isLoading: loadingPortfolio,
+    refresh,
+  } = usePortfolioData({
+    refreshInterval: 5 * 60 * 1000,
+    enableAutoRefresh: true,
+  });
 
   const checkSystemHealth = useCallback(async () => {
     try {
@@ -104,66 +69,19 @@ export function Dashboard() {
     }
   }, []);
 
-  const refreshAllData = useCallback(async () => {
-    if (isRefreshing) return;
-
-    setIsRefreshing(true);
-
-    try {
-      await fetchPortfolios();
-
-      const allSymbols = new Set<string>();
-      portfolios.forEach((portfolio) => {
-        // Note: We need to get holdings to extract symbols
-        // This would need additional API call or we store symbols in portfolio
-      });
-
-      if (allSymbols.size > 0) {
-        const symbolArray = Array.from(allSymbols);
-
-        await fetch("/api/market-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            symbols: symbolArray,
-            action: "batch-quotes",
-          }),
-        });
-      }
-
-      await fetchPortfolios();
-
-      setLastUpdate(new Date().toLocaleTimeString());
-    } catch (error) {
-      setError("Failed to refresh data");
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [fetchPortfolios, portfolios, isRefreshing]);
-
   useEffect(() => {
     if (!isLoaded) return;
 
     const initDashboard = async () => {
       setIsLoading(true);
 
-      await Promise.all([fetchPortfolios(), checkSystemHealth()]);
+      await checkSystemHealth();
 
       setIsLoading(false);
     };
 
     initDashboard();
-  }, [isLoaded, fetchPortfolios, checkSystemHealth]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLoading && !isRefreshing) {
-        refreshAllData();
-      }
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [isLoading, isRefreshing, refreshAllData]);
+  }, [isLoaded, checkSystemHealth]);
 
   const totalValue = portfolios.reduce(
     (sum, p) => sum + (p.totalValue || 0),
@@ -215,7 +133,7 @@ export function Dashboard() {
     }
   };
 
-  if (!isLoaded || isLoading) {
+  if (!isLoaded || loadingPortfolio) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -275,12 +193,8 @@ export function Dashboard() {
                     {error}
                   </p>
                 )}
-                {lastUpdate && (
-                  <p className="text-sm text-green-600">
-                    ✅ Data last updated: {lastUpdate}
-                  </p>
-                )}
-                {isRefreshing && (
+
+                {loadingPortfolio && (
                   <p className="text-sm text-blue-600 flex items-center gap-1">
                     <RefreshCw className="h-4 w-4 animate-spin" />
                     Refreshing data...
@@ -293,15 +207,15 @@ export function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={refreshAllData}
-                disabled={isRefreshing || isLoading}
+                onClick={refresh}
+                disabled={loadingPortfolio || isLoading}
               >
                 <RefreshCw
                   className={`h-4 w-4 mr-2 ${
-                    isRefreshing ? "animate-spin" : ""
+                    loadingPortfolio ? "animate-spin" : ""
                   }`}
                 />
-                {isRefreshing ? "Refreshing..." : "Refresh Data"}
+                {loadingPortfolio ? "Refreshing..." : "Refresh Data"}
               </Button>
               <UserButton
                 appearance={{
@@ -332,7 +246,7 @@ export function Dashboard() {
                   size="sm"
                   onClick={() => {
                     setError(null);
-                    fetchPortfolios();
+                    refresh();
                   }}
                   className="ml-auto"
                 >
@@ -355,7 +269,10 @@ export function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <PortfolioList portfolios={portfolios} isLoading={false} />
+              <PortfolioList
+                portfolios={portfolios}
+                isLoading={loadingPortfolio}
+              />
             </div>
 
             <div className="lg:col-span-1">

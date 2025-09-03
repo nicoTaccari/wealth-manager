@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 
 interface DeletePortfolioModalProps {
   portfolio: {
@@ -73,108 +76,99 @@ export function DeletePortfolioModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full">
-        <Card className="border-0">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-red-600">
-                  <AlertTriangle className="h-5 w-5" />
-                  Delete Portfolio
-                </CardTitle>
-                <CardDescription>This action cannot be undone</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleClose}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Warning Message */}
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-red-800 mb-1">
-                    You are about to permanently delete:
-                  </p>
-                  <ul className="text-red-700 space-y-1">
-                    <li>
-                      • Portfolio: <strong>{portfolio.name}</strong>
-                    </li>
-                    <li>
-                      • All {holdingsCount} holdings within this portfolio
-                    </li>
-                    <li>• All historical performance data</li>
-                    <li>• All associated analytics and reports</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+    <Dialog isOpen={isOpen} onClose={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Portfolio
+            </DialogTitle>
+            <DialogDescription>This action cannot be undone</DialogDescription>
+          </div>
+          <DialogClose onClose={onClose} />
+        </DialogHeader>
 
-            {/* Confirmation Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                To confirm deletion, type the portfolio name:
-              </label>
-              <Input
-                value={confirmationText}
-                onChange={(e) => setConfirmationText(e.target.value)}
-                placeholder={portfolio.name}
-                className="border-red-300 focus:ring-red-500 focus:border-red-500"
-              />
-              <p className="text-xs text-gray-500">
-                Type <strong>{portfolio.name}</strong> to confirm
+        {/* Warning Message */}
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-red-800 mb-1">
+                You are about to permanently delete:
               </p>
+              <ul className="text-red-700 space-y-1">
+                <li>
+                  • Portfolio: <strong>{portfolio.name}</strong>
+                </li>
+                <li>• All {holdingsCount} holdings within this portfolio</li>
+                <li>• All historical performance data</li>
+                <li>• All associated analytics and reports</li>
+              </ul>
             </div>
+          </div>
+        </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800 text-sm">{error}</p>
-              </div>
+        {/* Confirmation Input */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">
+            To confirm deletion, type the portfolio name:
+          </label>
+          <Input
+            value={confirmationText}
+            onChange={(e) => setConfirmationText(e.target.value)}
+            placeholder={portfolio.name}
+            className="border-red-300 focus:ring-red-500 focus:border-red-500"
+          />
+          <p className="text-xs text-gray-500">
+            Type <strong>{portfolio.name}</strong> to confirm
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={!isConfirmed || isLoading}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Portfolio
+              </>
             )}
+          </Button>
+        </DialogFooter>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={!isConfirmed || isLoading}
-                className="flex-1"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Portfolio
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Additional Warning */}
-            <div className="pt-2 border-t">
-              <p className="text-xs text-gray-500 text-center">
-                ⚠️ This action is permanent and cannot be reversed
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        {/* Additional Warning */}
+        <div className="pt-2 border-t">
+          <p className="text-xs text-gray-500 text-center">
+            ⚠️ This action is permanent and cannot be reversed
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

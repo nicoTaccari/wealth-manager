@@ -30,34 +30,8 @@ import { EditPortfolioModal } from "@/components/portfolio/edit-portfolio-modal"
 import { EditHoldingModal } from "@/components/portfolio/edit-holding-modal";
 import { DeletePortfolioModal } from "@/components/portfolio/delete-portfolio-modal";
 import { DeleteHoldingModal } from "@/components/portfolio/delete-holding-modal";
-
-interface Holding {
-  id: string;
-  symbol: string;
-  quantity: number;
-  avgCost: number;
-  marketValue: number;
-  assetType: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface Portfolio {
-  id: string;
-  name: string;
-  description?: string;
-  totalValue: number;
-  totalReturn: number;
-  totalReturnPercentage: number;
-  totalCost: number;
-  targetAllocation?: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-  holdings: Holding[];
-  _count: {
-    holdings: number;
-  };
-}
+import { HoldingsTable } from "@/components/portfolio/holdings-table";
+import { Holding, Portfolio } from "@/types/portfolio";
 
 export default function PortfolioDetailPage() {
   const params = useParams();
@@ -227,7 +201,6 @@ export default function PortfolioDetailPage() {
     );
   }
 
-  // Portfolio not found state
   if (!portfolio) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -258,7 +231,8 @@ export default function PortfolioDetailPage() {
   const dayChange = metrics?.dayChange || 0;
   const dayChangePercentage = metrics?.dayChangePercentage || 0;
   const isPositiveDay = dayChange >= 0;
-  const isPositiveTotal = (metrics?.totalReturn || portfolio.totalReturn) >= 0;
+  const isPositiveTotal =
+    (metrics?.totalReturn || portfolio?.totalReturn || -1) >= 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -357,7 +331,7 @@ export default function PortfolioDetailPage() {
               <CardContent>
                 <div className="text-3xl font-bold">
                   {formatCurrency(
-                    metrics?.totalReturn || portfolio.totalReturn
+                    metrics?.totalReturn || portfolio.totalReturn || 0
                   )}
                 </div>
                 <div
@@ -372,7 +346,8 @@ export default function PortfolioDetailPage() {
                   )}
                   {formatPercentage(
                     metrics?.totalReturnPercentage ||
-                      portfolio.totalReturnPercentage
+                      portfolio?.totalReturnPercentage ||
+                      0
                   )}
                 </div>
               </CardContent>
@@ -386,7 +361,9 @@ export default function PortfolioDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {formatCurrency(metrics?.totalCost || portfolio.totalCost)}
+                  {formatCurrency(
+                    metrics?.totalCost || portfolio.totalCost || 0
+                  )}
                 </div>
                 <div className="text-sm text-gray-500">Cost basis</div>
               </CardContent>
@@ -400,7 +377,7 @@ export default function PortfolioDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {portfolio._count.holdings}
+                  {portfolio?._count?.holdings}
                 </div>
                 <div className="text-sm text-gray-500">positions</div>
               </CardContent>
@@ -439,108 +416,13 @@ export default function PortfolioDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {portfolio.holdings.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <Plus className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No holdings yet
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    Add your first stock or investment to start tracking this
-                    portfolio
-                  </p>
-                  <Button onClick={() => setShowAddHolding(true)}>
-                    Add First Holding
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {portfolio.holdings.map((holding) => {
-                    const holdingReturn =
-                      holding.marketValue - holding.quantity * holding.avgCost;
-                    const holdingReturnPercentage =
-                      holding.quantity * holding.avgCost > 0
-                        ? (holdingReturn /
-                            (holding.quantity * holding.avgCost)) *
-                          100
-                        : 0;
-                    const isPositive = holdingReturn >= 0;
-                    const currentPrice = holding.marketValue / holding.quantity;
-
-                    return (
-                      <div
-                        key={holding.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 group"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-medium text-blue-600">
-                                {holding.symbol.substring(0, 2)}
-                              </span>
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900">
-                                {holding.symbol}
-                              </h3>
-                              <p className="text-sm text-gray-500">
-                                {holding.quantity} shares • {holding.assetType}{" "}
-                                • Avg: {formatCurrency(holding.avgCost)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-right mr-4">
-                          <div className="font-semibold text-gray-900">
-                            {formatCurrency(holding.marketValue)}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            @ {formatCurrency(currentPrice)}/share
-                          </div>
-                          <div className="flex items-center gap-1 text-sm">
-                            {isPositive ? (
-                              <TrendingUp className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3 text-red-600" />
-                            )}
-                            <span
-                              className={
-                                isPositive ? "text-green-600" : "text-red-600"
-                              }
-                            >
-                              {formatCurrency(holdingReturn)} (
-                              {formatPercentage(holdingReturnPercentage)})
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Actions Menu */}
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditHolding(holding)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteHolding(holding)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <HoldingsTable
+                holdings={portfolio.holdings ?? []}
+                isLoading={isLoading}
+                onEdit={handleEditHolding}
+                onDelete={handleDeleteHolding}
+                onAddNew={() => setShowAddHolding(true)}
+              />
             </CardContent>
           </Card>
         </div>
