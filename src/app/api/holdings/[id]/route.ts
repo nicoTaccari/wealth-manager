@@ -58,6 +58,7 @@ export async function GET(request: NextRequest, { params }: HoldingParams) {
     };
 
     return NextResponse.json({ holding: enrichedHolding });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
@@ -181,6 +182,7 @@ export async function DELETE(request: NextRequest, { params }: HoldingParams) {
     });
 
     return NextResponse.json({ message: "Holding deleted successfully" });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },

@@ -161,6 +161,7 @@ export async function GET(request: NextRequest) {
       { message: "AI Analysis endpoint ready" },
       { status: 200 }
     );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return NextResponse.json(
       { error: "Service check failed" },

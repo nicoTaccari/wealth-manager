@@ -89,10 +89,6 @@ export default function PortfoliosPage() {
     fetchPortfolios();
   };
 
-  const handlePortfolioDeleted = () => {
-    fetchPortfolios();
-  };
-
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);

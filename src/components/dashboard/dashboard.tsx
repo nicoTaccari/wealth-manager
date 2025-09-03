@@ -66,6 +66,7 @@ export function Dashboard() {
         marketData: marketHealth.status || "error",
       }));
     } catch (error) {
+      console.error("Market data health check failed:", error);
       setSystemHealth((prev) => ({ ...prev, marketData: "error" }));
     }
   }, []);

@@ -1,4 +1,3 @@
-// src/app/api/portfolios/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
@@ -10,7 +9,7 @@ const createPortfolioSchema = z.object({
   targetAllocation: z.record(z.string(), z.number()).optional(),
 });
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth();
 
@@ -18,13 +17,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure user exists in our database
     await prisma.user.upsert({
       where: { id: userId },
       update: {},
       create: {
         id: userId,
-        email: "", // Will be updated when we have the email
+        email: "",
       },
     });
 
@@ -71,7 +69,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createPortfolioSchema.parse(body);
 
-    // Ensure user exists
     await prisma.user.upsert({
       where: { id: userId },
       update: {},
