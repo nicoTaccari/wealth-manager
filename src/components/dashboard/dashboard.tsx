@@ -2,7 +2,6 @@
 
 import { UserButton, useUser } from "@clerk/nextjs";
 import { PortfolioList } from "./portfolio-list";
-import { QuickActions } from "./quick-actions";
 import { DiagnosticPanel } from "../debug/diagnostic-panel";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -21,6 +20,8 @@ import {
   AlertTriangle,
   CheckCircle,
   WifiOff,
+  Brain,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { StatsCards } from "./stats-card";
@@ -256,6 +257,7 @@ export function Dashboard() {
             </div>
           )}
 
+          {/* Portfolio Stats */}
           <div className="mb-8">
             <StatsCards
               totalValue={totalValue}
@@ -267,61 +269,112 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-2">
+          {/* Main Content Area */}
+          <div className="space-y-8">
+            {/* Portfolio List - Now full width */}
+            <div>
               <PortfolioList
                 portfolios={portfolios}
                 isLoading={loadingPortfolio}
               />
             </div>
 
-            <div className="lg:col-span-1">
-              <QuickActions />
-            </div>
-          </div>
+            {/* AI & Market Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* AI Features Card */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-purple-600" />
+                        AI-Powered Insights
+                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                          NEW
+                        </span>
+                      </CardTitle>
+                      <CardDescription>
+                        Get intelligent analysis of your investments
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {portfolioCount === 0 ? (
+                    <div className="text-center py-6">
+                      <Brain className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 mb-4">
+                        Create your first portfolio to unlock AI analysis
+                      </p>
+                      <Link href="/portfolios/create">
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Portfolio
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-4 bg-purple-50 rounded-lg">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {portfolioCount}
+                          </div>
+                          <div className="text-sm text-purple-800">
+                            Portfolios Ready
+                          </div>
+                        </div>
+                        <div className="text-center p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-600">
+                            2-3s
+                          </div>
+                          <div className="text-sm text-green-800">
+                            Analysis Time
+                          </div>
+                        </div>
+                      </div>
 
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
-                      Market Overview
-                    </CardTitle>
-                    <CardDescription>
-                      Portfolio analytics and system status
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link href="/portfolios">
-                      <Button variant="outline" size="sm">
-                        <BarChart className="h-4 w-4 mr-2" />
-                        View Portfolios
-                      </Button>
-                    </Link>
-                    <Link href="/market-data">
-                      <Button variant="outline" size="sm">
-                        <Activity className="h-4 w-4 mr-2" />
-                        Market Data
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {portfolioCount === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">
-                      Create your first portfolio to see market insights and
-                      analytics
-                    </p>
-                    <Link href="/portfolios/create">
-                      <Button>Create Portfolio</Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">
+                          Available AI Features:
+                        </h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          <div>• Portfolio risk & diversification analysis</div>
+                          <div>• Personalized investment recommendations</div>
+                          <div>• Market context & trend insights</div>
+                          <div>• Interactive chat assistant</div>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                          <span>Powered by</span>
+                          <span className="font-medium text-gray-700">
+                            Groq
+                          </span>
+                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                            Ultra Fast
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Market & System Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    System & Market Status
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time system health and market data status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 border rounded-lg">
                       <div className="text-2xl font-bold text-blue-600">
                         {portfolioCount}
@@ -348,7 +401,7 @@ export function Dashboard() {
                         )}`}
                       >
                         {systemHealth.marketData === "healthy"
-                          ? "Alpha Vantage"
+                          ? "Live"
                           : systemHealth.marketData === "degraded"
                           ? "Mock"
                           : "Offline"}
@@ -362,26 +415,36 @@ export function Dashboard() {
                         )}`}
                       >
                         {overallStatus === "healthy"
-                          ? "Online"
+                          ? "✓"
                           : overallStatus === "warning"
-                          ? "Issues"
-                          : "Offline"}
+                          ? "⚠"
+                          : "✗"}
                       </div>
                       <div className="text-sm text-gray-600">
                         Overall Status
                       </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+
+                  <div className="mt-4 flex justify-center">
+                    <Link href="/market-data">
+                      <Button variant="outline" size="sm">
+                        <BarChart className="h-4 w-4 mr-2" />
+                        View Diagnostics
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
+          {/* Development Panel */}
           {process.env.NODE_ENV === "development" && (
             <div className="space-y-6">
               <div className="p-4 bg-blue-50 rounded-lg">
                 <h3 className="font-medium text-blue-900 mb-2">
-                  🚀 Development Status - SEMANA 3 COMPLETADA
+                  🚀 Development Status - AI INTEGRATION COMPLETED
                 </h3>
                 <div className="text-sm text-blue-800 space-y-1">
                   <p>
@@ -395,6 +458,10 @@ export function Dashboard() {
                     ✅ <strong>Portfolios:</strong> {portfolioCount} loaded
                   </p>
                   <p>
+                    🤖 <strong>AI Integration:</strong> Groq + Ultra-fast
+                    analysis
+                  </p>
+                  <p>
                     📊 <strong>Market Data:</strong> {systemHealth.marketData}{" "}
                     (Real API + Mock fallback)
                   </p>
@@ -402,8 +469,7 @@ export function Dashboard() {
                     🏦 <strong>Database:</strong> {systemHealth.database}
                   </p>
                   <p>
-                    🎯 <strong>Next:</strong> Semana 4 - Market Data & Analytics
-                    Integration
+                    🎯 <strong>Next:</strong> Advanced features & B2B components
                   </p>
                 </div>
               </div>
