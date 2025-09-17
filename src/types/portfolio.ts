@@ -11,7 +11,7 @@ export interface User {
 export interface Portfolio {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   targetAllocation?: Record<string, number>;
   totalValue: number;
   createdAt: Date;

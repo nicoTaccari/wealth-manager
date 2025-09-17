@@ -499,7 +499,7 @@ export default function PortfolioDetailPage() {
         portfolio={{
           id: portfolio.id,
           name: portfolio.name,
-          description: portfolio.description,
+          description: portfolio.description ?? undefined,
         }}
         isOpen={showEditPortfolio}
         onClose={() => setShowEditPortfolio(false)}

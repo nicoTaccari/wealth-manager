@@ -22,6 +22,7 @@ import {
   WifiOff,
   Brain,
   Plus,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 import { StatsCards } from "./stats-card";
@@ -363,15 +364,15 @@ export function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Market & System Status */}
+              {/* System & Market Status */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-600" />
-                    System & Market Status
+                    System & Analytics Hub
                   </CardTitle>
                   <CardDescription>
-                    Real-time system health and market data status
+                    Real-time system health and advanced analytics access
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -427,11 +428,52 @@ export function Dashboard() {
                     </div>
                   </div>
 
+                  {/* Analytics Access */}
+                  <div className="mt-6 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium text-gray-900">
+                        Advanced Analytics
+                      </h4>
+                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                        NEW
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Link href="/analytics">
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                        >
+                          <BarChart className="h-4 w-4 mr-2" />
+                          Portfolio Comparison
+                        </Button>
+                      </Link>
+
+                      <Link href="/analytics">
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                        >
+                          <Target className="h-4 w-4 mr-2" />
+                          Benchmark Analysis
+                        </Button>
+                      </Link>
+                    </div>
+
+                    <Link href="/analytics" className="block">
+                      <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                        <BarChart className="h-4 w-4 mr-2" />
+                        Open Advanced Analytics
+                      </Button>
+                    </Link>
+                  </div>
+
                   <div className="mt-4 flex justify-center">
                     <Link href="/market-data">
-                      <Button variant="outline" size="sm">
-                        <BarChart className="h-4 w-4 mr-2" />
-                        View Diagnostics
+                      <Button variant="ghost" size="sm">
+                        <Activity className="h-4 w-4 mr-2" />
+                        System Diagnostics
                       </Button>
                     </Link>
                   </div>
